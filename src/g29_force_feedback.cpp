@@ -30,6 +30,8 @@ private:
     double m_auto_centering_max_position;
     double m_eps;
     bool m_auto_centering;
+    double rotation_moment;
+    double wheel_resistance;
 
     // variables
     g29_force_feedback::ForceFeedback m_target;
@@ -39,6 +41,7 @@ private:
     double m_position;
     double m_torque;
     double m_attack_length;
+    double last_position;
 
 public:
     G29ForceFeedback();
@@ -51,6 +54,7 @@ private:
     void initDevice();
     void calcRotateForce(double &torque, double &attack_length, const g29_force_feedback::ForceFeedback &target, const double &current_position);
     void calcCenteringForce(double &torque, const g29_force_feedback::ForceFeedback &target, const double &current_position);
+    void G29ForceFeedback::calcDynamicalCenteringForce(double &torque, const g29_force_feedback::ForceFeedback &target, const double &current_position, double &time_gap)
     void uploadForce(const double &position, const double &force, const double &attack_length);
 };
 
@@ -70,6 +74,8 @@ G29ForceFeedback::G29ForceFeedback() {
     n.getParam("auto_centering_max_position", m_auto_centering_max_position);
     n.getParam("eps", m_eps);
     n.getParam("auto_centering", m_auto_centering);
+    n.getParam("rotation_moment", rotation_moment);
+    n.getParam("auto_centering", wheel_resistance);
 
     initDevice();
 
@@ -103,7 +109,8 @@ void G29ForceFeedback::loop(const ros::TimerEvent&) {
     }
 
     if (m_is_brake_range || m_auto_centering) {
-        calcCenteringForce(m_torque, m_target, m_position);
+        // calcCenteringForce(m_torque, m_target, m_position);
+        calcDynamicalCenteringForce(m_torque, m_target, m_position,m_loop_rate);
         m_attack_length = 0.0;
 
     } else {
@@ -155,6 +162,19 @@ void G29ForceFeedback::calcCenteringForce(double &torque,
         double buf_torque = power * torque_range + m_min_torque;
         torque = std::min(buf_torque, m_auto_centering_max_torque) * direction;
     }
+}
+
+void G29ForceFeedback::calcDynamicalCenteringForce(double &torque,
+                                          const g29_force_feedback::ForceFeedback &target,
+                                          const double &current_position,
+                                          double &time_gap){
+                                          
+    double diff = target.position - current_position;
+    double direction = (diff > 0.0) ? 1.0 : -1.0;  
+    double buf_torque = rotation_moment * (current_position - last_position)/time_gap + wheel_resistance * current_position;
+    torque = std::min(buf_torque, m_auto_centering_max_torque) * direction;
+    
+    last_position = current_position;
 }
 
 

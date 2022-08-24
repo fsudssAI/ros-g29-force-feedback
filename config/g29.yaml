@@ -7,4 +7,7 @@ brake_position: 0.1
 auto_centering_max_torque: 0.3
 auto_centering_max_position: 0.2
 eps: 0.05
-auto_centering: false
+auto_centering: true
+rotation_moment: 0.2
+wheel_resistance: 0.5
+
