@@ -11,4 +11,4 @@ auto_centering: false
 rotation_moment: 0.2
 wheel_resistance: 0.5
 autocenter_control_d: 0.5
-autocenter_control_p: 2
+autocenter_control_p: 1.5

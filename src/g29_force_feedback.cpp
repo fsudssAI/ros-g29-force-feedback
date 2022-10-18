@@ -111,10 +111,9 @@ void G29ForceFeedback::loop(const ros::TimerEvent&) {
             m_position = (event.value - (m_axis_max + m_axis_min) * 0.5) * 2 / (m_axis_max - m_axis_min);
         }
     }
-
     if (m_is_brake_range || m_auto_centering) {
-         calcCenteringForce(m_torque, m_target, m_position);
-        //calcDynamicalCenteringForce(m_torque, m_target, m_position,m_loop_rate);
+         //calcCenteringForce(m_torque, m_target, m_position);
+        calcDynamicalCenteringForce(m_torque, m_target, m_position,m_loop_rate);
         m_attack_length = 0.0;
 
     } else {
@@ -178,8 +177,18 @@ void G29ForceFeedback::calcDynamicalCenteringForce(double &torque,
 	
     //double buf_torque = rotation_moment * fabs(current_position - last_position)/time_gap + wheel_resistance * current_position;
     //torque = std::min(buf_torque, m_auto_centering_max_torque) * direction;
-	torque= autocenter_control_p*diff+autocenter_control_d*(current_position - last_position)+wheel_resistance*target.position;
-	std::cout<<torque<<std::endl;
+	torque= (autocenter_control_p*diff)+(autocenter_control_d*(current_position - last_position))-(wheel_resistance*current_position);
+    torque = std::min(fabs(torque), m_max_torque) * direction;
+	std::cout<<"Torque:"<<torque<<std::endl;
+    // std::cout<<"CP:"<<current_position<<std::endl;
+    int position_range_minimum=-1;
+    int position_range_maximum=1;
+    int wheel_angle_maximum=450;
+    int wheel_angle_minimum=-450;
+
+    float x=(current_position-position_range_minimum)/(position_range_maximum-position_range_minimum);
+    float wheel_angle=wheel_angle_minimum+((wheel_angle_maximum-wheel_angle_minimum)*x);
+    std::cout<<"Wheel Angle:"<<wheel_angle<<std::endl;
     last_position = current_position;
 }
 
@@ -201,6 +210,9 @@ void G29ForceFeedback::uploadForce(const double &position,
     // upload effect
     if (ioctl(m_device_handle, EVIOCSFF, &m_effect) < 0) {
         std::cout << "failed to upload effect" << std::endl;
+    }
+    else{
+        std::cout << "Effect is uploaded with torque"<<m_effect.u.constant.level << std::endl;
     }
 }
 
@@ -325,3 +337,4 @@ int main(int argc, char **argv ){
     ros::spin();
     return(0);
 }
+
