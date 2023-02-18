@@ -54,6 +54,7 @@ private:
     void loop(const ros::TimerEvent&);
     int testBit(int bit, unsigned char *array);
     void initDevice();
+    void reset();
     void calcRotateForce(double &torque, double &attack_length, const g29_force_feedback::ForceFeedback &target, const double &current_position);
     void calcCenteringForce(double &torque, const g29_force_feedback::ForceFeedback &target, const double &current_position);
     void calcDynamicalCenteringForce(double &torque, const g29_force_feedback::ForceFeedback &target, const double &current_position, double &time_gap);
@@ -231,6 +232,36 @@ void G29ForceFeedback::targetCallback(const g29_force_feedback::ForceFeedback &i
     }
 }
 
+void G29ForceFeedback::reset() {
+        char k= ioctl(m_device_handle, EVIOCRMFF, 0);
+    struct input_event event;
+
+    // init effect and get effect id
+    memset(&m_effect, 0, sizeof(m_effect));
+    m_effect.type = FF_CONSTANT;
+    m_effect.id = -1; // initial value
+    m_effect.u.constant.level = 0;
+    m_effect.direction = 0xC000;
+
+
+    if (ioctl(m_device_handle, EVIOCSFF, &m_effect) < 0) {
+        std::cout << "failed to upload m_effect" << std::endl;
+        exit(1);
+    }
+    else{
+        std::cout<<"Reset Effect is uploaded with torque:"<<m_effect.u.constant.level<<std::endl;
+    }
+
+    //start m_effect
+    memset(&event, 0, sizeof(event));
+    event.type = EV_FF;
+    event.code = m_effect.id;
+    event.value = 1;
+    if (write(m_device_handle, &event, sizeof(event)) != sizeof(event)) {
+        std::cout << "failed to start event" << std::endl;
+        exit(1);
+    }
+}
 
 // initialize force feedback device
 void G29ForceFeedback::initDevice() {
@@ -320,6 +351,7 @@ void G29ForceFeedback::initDevice() {
         std::cout << "failed to start event" << std::endl;
         exit(1);
     }
+    reset();
 }
 
 
