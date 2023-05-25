@@ -212,9 +212,11 @@ void G29ForceFeedback::uploadForce(const double &position,
     if (ioctl(m_device_handle, EVIOCSFF, &m_effect) < 0) {
         std::cout << "failed to upload effect" << std::endl;
     }
+/*
     else{
         std::cout << "Effect is uploaded with torque"<<m_effect.u.constant.level << std::endl;
     }
+*/
 }
 
 
